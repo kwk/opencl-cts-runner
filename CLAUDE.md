@@ -10,19 +10,20 @@ inside a `fedora:44` container and run it against one of several OpenCL backends
 make build                                          # build the image (~5-20 min, cached after)
 make list-tests                                     # list every test executable in the image
 
-# Run a single test to verify libclc works on Intel Iris/Xe via Mesa Rusticl
-# (requires i915/xe driver on the host and /dev/dri access)
-make run-intel-rusticl CTS_TESTS="test_basic"       # one test only — not a full conformance run
+# Run a single test via Mesa Rusticl + llvmpipe to exercise libclc — no GPU needed.
+# (POCL does not depend on libclc; only Mesa Rusticl does.)
+make run-rusticl-cpu CTS_TESTS="test_basic"         # one test only — not a full conformance run
 ```
 
 ## Run targets
 
 | Target | Backend | libclc | Devices forwarded |
 |---|---|---|---|
-| `run` | POCL (CPU) | runtime RPM dep | none |
-| `run-intel-rusticl` | Mesa Rusticl (Intel Iris/Xe) | statically linked in Mesa | `/dev/dri` |
-| `run-intel-gpu` | falls back to POCL (no GPU OCL backend installed) | runtime RPM dep | `/dev/dri` |
-| `run-amd-gpu` | falls back to POCL (no GPU OCL backend installed) | runtime RPM dep | `/dev/kfd` + `/dev/dri` |
+| `run` | POCL (CPU) | no (pocl has no libclc dep) | none |
+| `run-rusticl-cpu` | Mesa Rusticl + llvmpipe (CPU) | yes — runtime RPM dep of mesa-libOpenCL | none |
+| `run-intel-rusticl` | Mesa Rusticl (Intel Iris/Xe) | yes — runtime RPM dep of mesa-libOpenCL | `/dev/dri` |
+| `run-intel-gpu` | falls back to POCL (no GPU OCL backend installed) | no | `/dev/dri` |
+| `run-amd-gpu` | falls back to POCL (no GPU OCL backend installed) | no | `/dev/kfd` + `/dev/dri` |
 
 Every `run*` target runs `clinfo` first (with matching device flags) and logs
 the output separately.

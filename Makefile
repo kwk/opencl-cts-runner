@@ -83,6 +83,18 @@ run: clinfo | $(LOGS_DIR)
 		$(addprefix -e ,$(RUN_ENV)) \
 		$(IMAGE_NAME))
 
+.PHONY: run-rusticl-cpu
+## Run via Mesa Rusticl on the llvmpipe software device — no GPU required.
+## This is the simplest way to exercise libclc (a runtime dep of mesa-libOpenCL)
+## without physical GPU hardware.  POCL does NOT depend on libclc; this target does.
+run-rusticl-cpu: clinfo | $(LOGS_DIR)
+	$(call log_and_link,podman run --rm --replace \
+		--name $(CONTAINER_NAME) \
+		-e RUSTICL_ENABLE=llvmpipe \
+		-e CTS_TESTS="$(CTS_TESTS)" \
+		$(addprefix -e ,$(RUN_ENV)) \
+		$(IMAGE_NAME))
+
 .PHONY: run-intel-rusticl
 ## Run with Intel Iris/Xe GPU via Mesa Rusticl (requires i915/xe driver on host).
 ## RUSTICL_ENABLE=iris tells Mesa to expose the Iris/Xe GPU as an OpenCL device;
@@ -144,12 +156,15 @@ help:
 	@printf '  list-tests         List all test executables built into the image\n'
 	@printf '  clinfo             Show OpenCL platforms visible inside the container\n'
 	@printf '  run                Run CTS tests via POCL (CPU, no GPU needed)\n'
-	@printf '                     Uses libclc (runtime RPM dep of pocl)\n'
+	@printf '                     RUSTICL_ENABLE: not set; does NOT use libclc\n'
+	@printf '  run-rusticl-cpu    Run via Mesa Rusticl + llvmpipe (CPU, no GPU needed)\n'
+	@printf '                     RUSTICL_ENABLE=llvmpipe; uses libclc\n'
 	@printf '  run-intel-rusticl  Run tests on Intel Iris/Xe GPU via Mesa Rusticl\n'
-	@printf '                     Uses libclc (statically linked into mesa-libOpenCL)\n'
+	@printf '                     RUSTICL_ENABLE=iris; uses libclc\n'
 	@printf '  run-intel-gpu      Run tests with Intel /dev/dri passed through\n'
-	@printf '                     No dedicated GPU OpenCL backend; falls back to POCL\n'
+	@printf '                     RUSTICL_ENABLE: not set; falls back to POCL\n'
 	@printf '  run-amd-gpu        Run tests with AMD /dev/kfd + /dev/dri passed through\n'
+	@printf '                     RUSTICL_ENABLE: not set; falls back to POCL\n'
 	@printf '  shell              Drop into a bash shell inside the image\n'
 	@printf '  clean              Delete the container and image\n'
 	@printf '\nLogs: each run creates $(LOGS_DIR)/<target>.<timestamp>.log;\n'
