@@ -17,6 +17,7 @@ RUN dnf install -y --setopt=install_weak_deps=False \
         spirv-headers-devel \
         spirv-tools \
         pocl \
+        mesa-libOpenCL \
         clinfo \
     && dnf clean all
 
@@ -48,6 +49,13 @@ RUN cmake -S . -B build \
 
 # ── Build ──────────────────────────────────────────────────────────────────────
 RUN cmake --build build --parallel "$(nproc)"
+
+# ── Extra ICD vendor directories ───────────────────────────────────────────────
+# A POCL-only vendor dir lets run targets restrict to the CPU platform via
+# OCL_ICD_VENDORS=/etc/OpenCL/vendors-pocl, preventing the rusticl platform
+# (which has no device without /dev/dri) from appearing as platform 0.
+RUN mkdir -p /etc/OpenCL/vendors-pocl \
+    && ln -s /etc/OpenCL/vendors/pocl.icd /etc/OpenCL/vendors-pocl/pocl.icd
 
 # ── Entrypoint ─────────────────────────────────────────────────────────────────
 COPY run-tests.sh /usr/local/bin/run-tests.sh

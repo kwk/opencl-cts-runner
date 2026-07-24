@@ -1,0 +1,155 @@
+=== OpenCL platform info ===
+Platform #0: Portable Computing Language
+ `-- Device #0: cpu-skylake-avx512-11th Gen Intel(R) Core(TM) i7-11850H @ 2.50GHz
+
+Found 35 test executable(s)
+
+┌── test_svm ─────────────────────────────────────────────
+ Initializing random seed to 0.
+Requesting Default device based on command line for platform index 0 and device index 0
+Compute Device Name = cpu-skylake-avx512-11th Gen Intel(R) Core(TM) i7-11850H @ 2.50GHz, Compute Device Vendor = GenuineIntel, Compute Device Version = OpenCL 3.0 PoCL HSTR: cpu-x86_64-redhat-linux-gnu-skylake-avx512, CL C Version = OpenCL C 1.2 PoCL
+Device latest conformance version passed: v2024-08-08-00
+Supports single precision denormals: YES
+sizeof( void*) = 8  (host)
+sizeof( void*) = 8  (device)
+svm_allocate_shared_buffer...
+Testing clSVMalloc with flags: CL_MEM_READ_WRITE
+Testing clSVMalloc with flags: CL_MEM_WRITE_ONLY
+Testing clSVMalloc with flags: CL_MEM_READ_ONLY
+Testing clSVMalloc with flags: CL_MEM_READ_WRITE | CL_MEM_SVM_FINE_GRAIN_BUFFER
+Testing clSVMalloc with flags: CL_MEM_WRITE_ONLY | CL_MEM_SVM_FINE_GRAIN_BUFFER
+Testing clSVMalloc with flags: CL_MEM_READ_ONLY | CL_MEM_SVM_FINE_GRAIN_BUFFER
+Testing clSVMalloc with flags: CL_MEM_READ_WRITE | CL_MEM_SVM_FINE_GRAIN_BUFFER | CL_MEM_SVM_ATOMICS
+Testing clSVMalloc with flags: CL_MEM_WRITE_ONLY | CL_MEM_SVM_FINE_GRAIN_BUFFER | CL_MEM_SVM_ATOMICS
+Testing clSVMalloc with flags: CL_MEM_READ_ONLY | CL_MEM_SVM_FINE_GRAIN_BUFFER | CL_MEM_SVM_ATOMICS
+Testing clSVMalloc with flags: 0
+svm_allocate_shared_buffer passed
+svm_allocate_shared_buffer_negative...
+Testing clSVMalloc with flags: CL_MEM_READ_WRITE
+Testing clSVMalloc with flags: CL_MEM_WRITE_ONLY
+Testing clSVMalloc with flags: CL_MEM_READ_ONLY
+Testing clSVMalloc with flags: CL_MEM_READ_WRITE | CL_MEM_SVM_FINE_GRAIN_BUFFER
+Testing clSVMalloc with flags: CL_MEM_WRITE_ONLY | CL_MEM_SVM_FINE_GRAIN_BUFFER
+Testing clSVMalloc with flags: CL_MEM_READ_ONLY | CL_MEM_SVM_FINE_GRAIN_BUFFER
+Testing clSVMalloc with flags: CL_MEM_READ_WRITE | CL_MEM_SVM_FINE_GRAIN_BUFFER | CL_MEM_SVM_ATOMICS
+Testing clSVMalloc with flags: CL_MEM_WRITE_ONLY | CL_MEM_SVM_FINE_GRAIN_BUFFER | CL_MEM_SVM_ATOMICS
+Testing clSVMalloc with flags: CL_MEM_READ_ONLY | CL_MEM_SVM_FINE_GRAIN_BUFFER | CL_MEM_SVM_ATOMICS
+Testing clSVMalloc with flags: 0
+svm_allocate_shared_buffer_negative passed
+svm_byte_granularity...
+svm_byte_granularity passed
+svm_cross_buffer_pointers_coarse_grain...
+SVM: creating linked list on device: 0  and verifying on device: 0 Passed
+SVM: creating linked list on device: 0  and verifying on host Passed
+SVM: creating linked list on host  and verifying on device: 0 Passed
+SVM: creating linked list on host  and verifying on host Passed
+svm_cross_buffer_pointers_coarse_grain passed
+svm_enqueue_api...
+clEnqueueSVMMemcpy case: src_alloc = host, dst_alloc = host
+clEnqueueSVMMemcpy case: src_alloc = host, dst_alloc = svm
+clEnqueueSVMMemcpy case: src_alloc = svm, dst_alloc = host
+clEnqueueSVMMemcpy case: src_alloc = svm, dst_alloc = svm
+svm_enqueue_api passed
+svm_fine_grain_memory_consistency...
+svm_fine_grain_memory_consistency passed
+svm_fine_grain_sync_buffers...
+svm_fine_grain_sync_buffers passed
+svm_migrate...
+svm_migrate passed
+svm_negative_memcpy_overlap...
+svm_negative_memcpy_overlap passed
+svm_pointer_passing...
+svm_pointer_passing passed
+svm_set_kernel_exec_info_svm_ptrs...
+svm_set_kernel_exec_info_svm_ptrs passed
+svm_shared_address_space_coarse_grain_old_api...
+1 warning generated.
+SVM: creating linked list on device: 0  and verifying on device: 0 Passed
+SVM: creating linked list on device: 0  and verifying on host Passed
+SVM: creating linked list on host  and verifying on device: 0 Passed
+SVM: creating linked list on host  and verifying on host Passed
+svm_shared_address_space_coarse_grain_old_api passed
+svm_shared_address_space_coarse_grain_new_api...
+SVM: creating linked list on device: 0  and verifying on device: 0 Passed
+SVM: creating linked list on device: 0  and verifying on host Passed
+SVM: creating linked list on host  and verifying on device: 0 Passed
+SVM: creating linked list on host  and verifying on host Passed
+svm_shared_address_space_coarse_grain_new_api passed
+svm_shared_address_space_fine_grain...
+SVM: creating linked list on device: 0  and verifying on device: 0 Passed
+SVM: creating linked list on device: 0  and verifying on host Passed
+creating linked list on host  and verifying on device: 0 Passed
+creating linked list on host  and verifying on host Passed
+svm_shared_address_space_fine_grain passed
+svm_shared_address_space_fine_grain_buffers...
+SVM: creating linked list on device: 0  and verifying on device: 0 Passed
+SVM: creating linked list on device: 0  and verifying on host Passed
+SVM: creating linked list on host  and verifying on device: 0 Passed
+SVM: creating linked list on host  and verifying on host Passed
+svm_shared_address_space_fine_grain_buffers passed
+svm_shared_sub_buffers...
+SVM: creating linked list on device: 0  and verifying on device: 0 Passed
+SVM: creating linked list on device: 0  and verifying on host Passed
+SVM: creating linked list on host  and verifying on device: 0 Passed
+SVM: creating linked list on host  and verifying on host Passed
+svm_shared_sub_buffers passed
+PASSED sub-test.
+PASSED 16 of 16 tests.
+└── PASS: test_svm
+
+┌── test_allocations ─────────────────────────────────────────────
+ Initializing random seed to 0.
+Requesting Default device based on command line for platform index 0 and device index 0
+Compute Device Name = cpu-skylake-avx512-11th Gen Intel(R) Core(TM) i7-11850H @ 2.50GHz, Compute Device Vendor = GenuineIntel, Compute Device Version = OpenCL 3.0 PoCL HSTR: cpu-x86_64-redhat-linux-gnu-skylake-avx512, CL C Version = OpenCL C 1.2 PoCL
+Device latest conformance version passed: v2024-08-08-00
+Supports single precision denormals: YES
+sizeof( void*) = 8  (host)
+sizeof( void*) = 8  (device)
+Device reports CL_DEVICE_MAX_MEM_ALLOC_SIZE=62810771456 bytes (59901MB), CL_DEVICE_GLOBAL_MEM_SIZE=62810771456 bytes (59901MB).
+Device shares memory with the host, so backing off the maximum combined allocation size to be 29950.5MB to avoid rampant paging.
+buffer...
+NOTE: reducing max allocations to 50%.
+** Target allocation size (rounded to nearest MB) is: 15702425600 bytes (14975MB).
+** Allocating buffer(s) to size 14975MB.
+  => Allocation 1
+	Attempting to allocate a buffer of size 14975MB.
+		Succeeded in allocating 14975MB using 1 memory objects.
+	Executing kernel with memory objects.
+		Checksum verified (3781753273 == 3781753273).
+	PASS: Allocation succeeded.
+buffer passed
+image2d_read...
+NOTE: reducing max allocations to 50%.
+** Target allocation size (rounded to nearest MB) is: 8589934592 bytes (8192MB).
+** Allocating read-only image(s) to size 8192MB.
+  => Allocation 1
+	Attempting to allocate a read-only image of size 8192MB.
+		Attempting to allocate a 8191.66MB read-only image (23170 x 23170) and fill with blocking writes.
+		Succeeded in allocating 8191.66MB using 1 memory objects.
+	Executing kernel with memory objects.
+		Checksum verified (4157121615 == 4157121615).
+	PASS: Allocation succeeded.
+image2d_read passed
+image2d_write...
+NOTE: reducing max allocations to 50%.
+** Target allocation size (rounded to nearest MB) is: 8589934592 bytes (8192MB).
+** Allocating write-only image(s) to size 8192MB.
+  => Allocation 1
+	Attempting to allocate a write-only image of size 8192MB.
+		Succeeded in allocating 8191.66MB using 1 memory objects.
+	Executing kernel with memory objects.
+		Image contents verified.
+	PASS: Allocation succeeded.
+image2d_write passed
+buffer_non_blocking...
+NOTE: reducing max allocations to 50%.
+** Target allocation size (rounded to nearest MB) is: 15702425600 bytes (14975MB).
+** Allocating buffer(s) to size 14975MB.
+  => Allocation 1
+	Attempting to allocate a buffer of size 14975MB.
+		Succeeded in allocating 14975MB using 1 memory objects.
+	Executing kernel with memory objects.
+		Checksum verified (3148106023 == 3148106023).
+	PASS: Allocation succeeded.
+buffer_non_blocking passed
+image2d_read_non_blocking...

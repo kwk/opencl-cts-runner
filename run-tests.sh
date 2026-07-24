@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
-# Runs all OpenCL-CTS conformance test executables found under the build tree.
+# Runs OpenCL-CTS conformance test executables found under the build tree.
 set -euo pipefail
 
 BUILD_DIR="${BUILD_DIR:-/opencl-cts/build}"
 TESTS_DIR="${BUILD_DIR}/test_conformance"
 EXIT_ON_FAIL="${EXIT_ON_FAIL:-0}"
+# Space-separated list of ERE patterns matched against the full test path.
+# Each pattern is tested with bash =~; plain substrings and regexes both work.
+# A test is included if any pattern matches.  Empty = run all.
+CTS_TESTS="${CTS_TESTS:-}"
 
 # ── Platform diagnostics ───────────────────────────────────────────────────────
 echo "=== OpenCL platform info ==="
@@ -12,16 +16,35 @@ clinfo --list 2>/dev/null || clinfo 2>/dev/null || echo "(clinfo not available)"
 echo ""
 
 # ── Discover test executables ──────────────────────────────────────────────────
-mapfile -t TESTS < <(
-    find "${TESTS_DIR}" -maxdepth 2 -name 'test_*' -type f -executable | sort
+mapfile -t ALL_TESTS < <(
+    find "${TESTS_DIR}" -name 'test_*' -type f -executable | sort
 )
 
-if [[ ${#TESTS[@]} -eq 0 ]]; then
+if [[ ${#ALL_TESTS[@]} -eq 0 ]]; then
     echo "ERROR: no test executables found under ${TESTS_DIR}" >&2
     exit 1
 fi
 
-echo "Found ${#TESTS[@]} test executable(s)"
+# ── Filter by CTS_TESTS if set ─────────────────────────────────────────────────
+if [[ -n "${CTS_TESTS}" ]]; then
+    TESTS=()
+    for exe in "${ALL_TESTS[@]}"; do
+        for pattern in ${CTS_TESTS}; do
+            if [[ "${exe}" =~ ${pattern} ]]; then
+                TESTS+=("${exe}")
+                break
+            fi
+        done
+    done
+    if [[ ${#TESTS[@]} -eq 0 ]]; then
+        echo "ERROR: CTS_TESTS='${CTS_TESTS}' matched no test executables" >&2
+        exit 1
+    fi
+else
+    TESTS=("${ALL_TESTS[@]}")
+fi
+
+echo "Running ${#TESTS[@]} of ${#ALL_TESTS[@]} test executable(s)"
 echo ""
 
 # ── Run each test ──────────────────────────────────────────────────────────────

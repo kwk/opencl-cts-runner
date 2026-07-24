@@ -1,0 +1,34 @@
+STEP 1/11: FROM fedora:44
+STEP 2/11: RUN dnf install -y --setopt=install_weak_deps=False         git         cmake         make         ninja-build         gcc-c++         python3         OpenCL-ICD-Loader         OpenCL-ICD-Loader-devel         spirv-headers-devel         spirv-tools         pocl         clinfo     && dnf clean all
+--> Using cache 98b532d14c35a4500a88322fa1b815dfbe14382e52af7ea5daab33ae70311db1
+--> 98b532d14c35
+STEP 3/11: RUN git clone --depth=1         https://github.com/KhronosGroup/OpenCL-CTS.git         /opencl-cts
+--> Using cache 0c168a6436efc7019d3401cdb6315013e6c05ac9243f9034acb070f68fc899dc
+--> 0c168a6436ef
+STEP 4/11: RUN git clone --depth=1        https://github.com/KhronosGroup/OpenCL-Headers.git        /opencl-cts/extern/OpenCL-Headers
+--> Using cache d6a8dc19cc10ab346a36a1600d6f6dc628ae4bfa0f6d71f4d4bc44cd6d5ffaff
+--> d6a8dc19cc10
+STEP 5/11: WORKDIR /opencl-cts
+--> Using cache 031b5cf72c55e5b9d53d4ae985c9c446fef5a17a4a6323eacdc69d14edfb6203
+--> 031b5cf72c55
+STEP 6/11: RUN cmake -S . -B build         -G Ninja         -DCMAKE_BUILD_TYPE=Release         -DCL_INCLUDE_DIR=/opencl-cts/extern/OpenCL-Headers         -DCL_LIB_DIR=/usr/lib64         -DSPIRV_INCLUDE_DIR=/usr         -DSPIRV_TOOLS_DIR=/usr/bin         -DOPENCL_LIBRARIES=OpenCL         -DGL_IS_SUPPORTED=OFF         -DVULKAN_IS_SUPPORTED=OFF
+--> Using cache 7571a6395134dda72c38f20d44998867c08539d55ecd358008286aea0f6f4930
+--> 7571a6395134
+STEP 7/11: RUN cmake --build build --parallel "$(nproc)"
+--> Using cache 25e6004ff8cd3b266dcbb040afc043a5ae3f524b7806f62422367cc6f1881659
+--> 25e6004ff8cd
+STEP 8/11: COPY run-tests.sh /usr/local/bin/run-tests.sh
+--> Using cache 296f04ee308bbcc9bc36343b1b8584dd1d0ae3907976874d11bd3f462aa6cada
+--> 296f04ee308b
+STEP 9/11: RUN chmod +x /usr/local/bin/run-tests.sh
+--> Using cache ca276d17ba44d4bcca50f26197f02459de0d4f1a5615382c6969fb86493f3604
+--> ca276d17ba44
+STEP 10/11: WORKDIR /opencl-cts/build
+--> Using cache 50db5f8196f383838b130ef540612b9e2d25bd989d07448c50d08f818031fbbf
+--> 50db5f8196f3
+STEP 11/11: CMD ["/usr/local/bin/run-tests.sh"]
+--> Using cache 3c491ecafac8a0dddf6cec8c34ed160aa7e4489d9802248c70cec15f3fed4ec0
+COMMIT opencl-cts
+--> 3c491ecafac8
+Successfully tagged localhost/opencl-cts:latest
+3c491ecafac8a0dddf6cec8c34ed160aa7e4489d9802248c70cec15f3fed4ec0

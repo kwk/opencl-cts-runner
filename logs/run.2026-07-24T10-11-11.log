@@ -1,0 +1,18 @@
+time="2026-07-24T10:11:23+02:00" level=warning msg="StopSignal SIGTERM failed to stop container opencl-cts-run in 10 seconds, resorting to SIGKILL"
+=== OpenCL platform info ===
+Platform #0: rusticl
+Platform #1: Portable Computing Language
+ `-- Device #0: cpu-skylake-avx512-11th Gen Intel(R) Core(TM) i7-11850H @ 2.50GHz
+
+Found 35 test executable(s)
+
+┌── test_svm ─────────────────────────────────────────────
+ Initializing random seed to 0.
+Requesting Default device based on command line for platform index 0 and device index 0
+ERROR: clGetDeviceIDs failed! (CL_DEVICE_NOT_FOUND from /opencl-cts/test_common/harness/testHarness.cpp:581)
+└── FAIL: test_svm
+=== Results ===
+  Passed: 0
+  Failed: 1
+  Failed tests:
+    - test_svm
