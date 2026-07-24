@@ -3,10 +3,6 @@ CONTAINER_NAME ?= opencl-cts-run
 CONTAINERFILE  ?= Containerfile
 LOGS_DIR       := logs
 
-# Paths used by the compare-results target.
-GOLDEN      ?=
-RESULTS_DIR ?=
-
 # Evaluated once per make invocation; all targets in one run share the stamp.
 LOG_STAMP := $(shell date +%Y-%m-%dT%H-%M-%S)
 
@@ -38,6 +34,10 @@ CTS_TESTS ?=
 # Extra environment variables forwarded into the container at runtime.
 RUN_ENV ?=
 
+# Paths used by the compare-results target.
+GOLDEN      ?=
+RESULTS_DIR ?=
+
 # Tee output to a timestamped file and update the <target>.log symlink to it.
 # The symlink is updated even when the command fails so the latest log is
 # always reachable under the stable name regardless of exit code.
@@ -48,6 +48,8 @@ define log_and_link
 	ln -sf $@.$(LOG_STAMP).log $(LOGS_DIR)/$@.log; \
 	exit $$EC
 endef
+
+# ── Build ──────────────────────────────────────────────────────────────────────
 
 .PHONY: all
 all: build
@@ -63,6 +65,8 @@ build: | $(LOGS_DIR)
 		--file $(CONTAINERFILE) \
 		--tag $(IMAGE_NAME) \
 		.)
+
+# ── Inspection ─────────────────────────────────────────────────────────────────
 
 .PHONY: list-lists
 ## List the CSV test-list presets available inside the image.
@@ -84,6 +88,21 @@ list-tests-in-list:
 		[print(f'{r[-1]:{w}}  {r[-2]}' + (f'  [{r[0]}]' if len(r)==3 else '')) \
 		 for r in rows]"
 
+.PHONY: shell
+## Open an interactive shell inside the built image for manual inspection.
+shell:
+	podman run --rm -it \
+		--name $(CONTAINER_NAME)-shell \
+		--entrypoint /bin/bash \
+		$(IMAGE_NAME)
+
+# ── Run tests ──────────────────────────────────────────────────────────────────
+
+.PHONY: smoke-test
+## Quick sanity check: run test_printf via Mesa Rusticl + llvmpipe (no GPU needed).
+smoke-test:
+	$(MAKE) run-rusticl-cpu CTS_TESTS="Printf"
+
 .PHONY: run
 ## Run CTS tests via POCL (CPU, no GPU needed).
 ## OCL_ICD_VENDORS restricts the ICD loader to pocl.icd only so that rusticl
@@ -102,11 +121,6 @@ run: | $(LOGS_DIR)
 		-e LOG_STAMP=$(LOG_STAMP) \
 		$(addprefix -e ,$(RUN_ENV)) \
 		$(IMAGE_NAME))
-
-.PHONY: smoke-test
-## Quick sanity check: run test_printf via Mesa Rusticl + llvmpipe (no GPU needed).
-smoke-test:
-	$(MAKE) run-rusticl-cpu CTS_TESTS="Printf"
 
 .PHONY: run-rusticl-cpu
 ## Run via Mesa Rusticl on the llvmpipe software device — no GPU required.
@@ -182,6 +196,8 @@ run-amd-gpu: | $(LOGS_DIR)
 		$(addprefix -e ,$(RUN_ENV)) \
 		$(IMAGE_NAME))
 
+# ── Compare ────────────────────────────────────────────────────────────────────
+
 .PHONY: compare-results
 ## Compare a JSON results directory against a golden reference.
 ## Usage: make compare-results GOLDEN=<path> RESULTS_DIR=<path>
@@ -199,13 +215,7 @@ compare-results:
 			--golden /golden.json \
 			--results-dir /results
 
-.PHONY: shell
-## Open an interactive shell inside the built image for manual inspection.
-shell:
-	podman run --rm -it \
-		--name $(CONTAINER_NAME)-shell \
-		--entrypoint /bin/bash \
-		$(IMAGE_NAME)
+# ── Utilities ──────────────────────────────────────────────────────────────────
 
 .PHONY: clean
 ## Remove the container (if still running) and the image.
@@ -215,11 +225,14 @@ clean:
 
 .PHONY: help
 help:
-	@printf 'Targets:\n'
+	@printf 'Build:\n'
 	@printf '  build              Build the OpenCL-CTS image (~5-20 min first time)\n'
-	@printf '  smoke-test         Run test_printf via Rusticl+llvmpipe (quick libclc check)\n'
+	@printf '\nInspection:\n'
 	@printf '  list-lists         List CSV test-list presets available in the image\n'
 	@printf '  list-tests-in-list List tests in the selected CTS_LIST\n'
+	@printf '  shell              Drop into a bash shell inside the image\n'
+	@printf '\nRun tests:\n'
+	@printf '  smoke-test         Run test_printf via Rusticl+llvmpipe (quick libclc check)\n'
 	@printf '  run                Run CTS via POCL (CPU); RUSTICL_ENABLE: not set\n'
 	@printf '  run-rusticl-cpu    Run via Mesa Rusticl + llvmpipe (CPU); uses libclc\n'
 	@printf '                     RUSTICL_ENABLE=llvmpipe; CL_DEVICE_TYPE=CL_DEVICE_TYPE_CPU\n'
@@ -227,8 +240,9 @@ help:
 	@printf '                     RUSTICL_ENABLE=iris; CL_DEVICE_TYPE=CL_DEVICE_TYPE_GPU\n'
 	@printf '  run-intel-gpu      Run with Intel /dev/dri; CL_DEVICE_TYPE=CL_DEVICE_TYPE_GPU\n'
 	@printf '  run-amd-gpu        Run with AMD /dev/kfd+dri; CL_DEVICE_TYPE=CL_DEVICE_TYPE_GPU\n'
+	@printf '\nCompare:\n'
 	@printf '  compare-results    Compare a results dir against a golden JSON reference\n'
-	@printf '  shell              Drop into a bash shell inside the image\n'
+	@printf '\nUtilities:\n'
 	@printf '  clean              Delete the container and image\n'
 	@printf '\nLogs: each run creates $(LOGS_DIR)/<target>.<timestamp>.log;\n'
 	@printf '      $(LOGS_DIR)/<target>.log is a symlink to the most recent one.\n'
@@ -240,6 +254,6 @@ help:
 	@printf '                 e.g.: make run CTS_TESTS="Printf SVM"\n'
 	@printf '  GOLDEN         Path to the golden JSON file for compare-results\n'
 	@printf '  RESULTS_DIR    Path to a <target>.results.<stamp>/ dir for compare-results\n'
-	@printf '  RUN_ENV        Space-separated KEY=VALUE pairs forwarded into the container.\n'
+	@printf '  RUN_ENV        Space-separated KEY=VALUE pairs forwarded into the container\n'
 	@printf '                 e.g.: make run RUN_ENV="OCL_ICD_ENABLE_TRACE=1"\n'
 	@printf '                       (trace every ICD dispatch — debugging only, very verbose)\n'
