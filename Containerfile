@@ -23,7 +23,8 @@ RUN dnf install -y --setopt=install_weak_deps=False \
 
 # ── Fetch source ───────────────────────────────────────────────────────────────
 RUN git clone --depth=1 \
-        https://github.com/KhronosGroup/OpenCL-CTS.git \
+        --branch add-conformance-results-dir-option \
+        https://github.com/kwk/OpenCL-CTS.git \
         /opencl-cts
 
 # The Fedora opencl-headers package lags behind the CTS main branch
@@ -58,9 +59,9 @@ RUN mkdir -p /etc/OpenCL/vendors-pocl \
     && ln -s /etc/OpenCL/vendors/pocl.icd /etc/OpenCL/vendors-pocl/pocl.icd
 
 # ── Entrypoint ─────────────────────────────────────────────────────────────────
-COPY run-tests.py /usr/local/bin/run-tests.py
-RUN chmod +x /usr/local/bin/run-tests.py
+COPY run-tests.sh /usr/local/bin/run-tests.sh
+RUN chmod +x /usr/local/bin/run-tests.sh
 
 WORKDIR /opencl-cts/build
 
-CMD ["/usr/local/bin/run-tests.py"]
+CMD ["/usr/local/bin/run-tests.sh"]
