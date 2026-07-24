@@ -11,9 +11,15 @@ No GPU hardware is required for the default workflow.
 
 ## Quick start
 
-```
+```sh
 make build        # pull fedora:44, install deps, compile the CTS (~5-20 min; cached after)
 make smoke-test   # run test_printf via Mesa Rusticl + llvmpipe — exercises libclc, no GPU needed
+
+# smoke-test writes JSON results to logs/run-rusticl-cpu.results.<timestamp>/
+# Compare against the golden reference (substitute the actual timestamp):
+make compare-results \
+  GOLDEN=logs/example-comparison/golden/Printf.json \
+  RESULTS_DIR=logs/run-rusticl-cpu.results.<timestamp>
 ```
 
 ## Make targets
