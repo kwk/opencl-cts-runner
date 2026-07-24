@@ -58,9 +58,9 @@ RUN mkdir -p /etc/OpenCL/vendors-pocl \
     && ln -s /etc/OpenCL/vendors/pocl.icd /etc/OpenCL/vendors-pocl/pocl.icd
 
 # ── Entrypoint ─────────────────────────────────────────────────────────────────
-COPY run-tests.sh /usr/local/bin/run-tests.sh
-RUN chmod +x /usr/local/bin/run-tests.sh
+COPY run-tests.py /usr/local/bin/run-tests.py
+RUN chmod +x /usr/local/bin/run-tests.py
 
 WORKDIR /opencl-cts/build
 
-CMD ["/usr/local/bin/run-tests.sh"]
+CMD ["/usr/local/bin/run-tests.py"]

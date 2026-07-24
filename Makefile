@@ -88,10 +88,14 @@ run: CL_DEVICE_TYPE = CL_DEVICE_TYPE_CPU
 run: | $(LOGS_DIR)
 	$(call log_and_link,podman run --rm --replace \
 		--name $(CONTAINER_NAME) \
+		-v $(CURDIR)/$(LOGS_DIR):/logs:z \
 		-e OCL_ICD_VENDORS=/etc/OpenCL/vendors-pocl \
 		-e CTS_LIST="$(CTS_LIST)" \
 		-e CL_DEVICE_TYPE="$(CL_DEVICE_TYPE)" \
 		-e CTS_TESTS="$(CTS_TESTS)" \
+		-e LOG_DIR=/logs \
+		-e RUN_TARGET=$@ \
+		-e LOG_STAMP=$(LOG_STAMP) \
 		$(addprefix -e ,$(RUN_ENV)) \
 		$(IMAGE_NAME))
 
@@ -108,10 +112,14 @@ run-rusticl-cpu: CL_DEVICE_TYPE = CL_DEVICE_TYPE_CPU
 run-rusticl-cpu: | $(LOGS_DIR)
 	$(call log_and_link,podman run --rm --replace \
 		--name $(CONTAINER_NAME) \
+		-v $(CURDIR)/$(LOGS_DIR):/logs:z \
 		-e RUSTICL_ENABLE=llvmpipe \
 		-e CTS_LIST="$(CTS_LIST)" \
 		-e CL_DEVICE_TYPE="$(CL_DEVICE_TYPE)" \
 		-e CTS_TESTS="$(CTS_TESTS)" \
+		-e LOG_DIR=/logs \
+		-e RUN_TARGET=$@ \
+		-e LOG_STAMP=$(LOG_STAMP) \
 		$(addprefix -e ,$(RUN_ENV)) \
 		$(IMAGE_NAME))
 
@@ -123,10 +131,14 @@ run-intel-rusticl: | $(LOGS_DIR)
 	$(call log_and_link,podman run --rm --replace \
 		--name $(CONTAINER_NAME) \
 		--device=/dev/dri \
+		-v $(CURDIR)/$(LOGS_DIR):/logs:z \
 		-e RUSTICL_ENABLE=iris \
 		-e CTS_LIST="$(CTS_LIST)" \
 		-e CL_DEVICE_TYPE="$(CL_DEVICE_TYPE)" \
 		-e CTS_TESTS="$(CTS_TESTS)" \
+		-e LOG_DIR=/logs \
+		-e RUN_TARGET=$@ \
+		-e LOG_STAMP=$(LOG_STAMP) \
 		$(addprefix -e ,$(RUN_ENV)) \
 		$(IMAGE_NAME))
 
@@ -137,9 +149,13 @@ run-intel-gpu: | $(LOGS_DIR)
 	$(call log_and_link,podman run --rm --replace \
 		--name $(CONTAINER_NAME) \
 		--device=/dev/dri \
+		-v $(CURDIR)/$(LOGS_DIR):/logs:z \
 		-e CTS_LIST="$(CTS_LIST)" \
 		-e CL_DEVICE_TYPE="$(CL_DEVICE_TYPE)" \
 		-e CTS_TESTS="$(CTS_TESTS)" \
+		-e LOG_DIR=/logs \
+		-e RUN_TARGET=$@ \
+		-e LOG_STAMP=$(LOG_STAMP) \
 		$(addprefix -e ,$(RUN_ENV)) \
 		$(IMAGE_NAME))
 
@@ -152,9 +168,13 @@ run-amd-gpu: | $(LOGS_DIR)
 		--device=/dev/kfd \
 		--device=/dev/dri \
 		--security-opt seccomp=unconfined \
+		-v $(CURDIR)/$(LOGS_DIR):/logs:z \
 		-e CTS_LIST="$(CTS_LIST)" \
 		-e CL_DEVICE_TYPE="$(CL_DEVICE_TYPE)" \
 		-e CTS_TESTS="$(CTS_TESTS)" \
+		-e LOG_DIR=/logs \
+		-e RUN_TARGET=$@ \
+		-e LOG_STAMP=$(LOG_STAMP) \
 		$(addprefix -e ,$(RUN_ENV)) \
 		$(IMAGE_NAME))
 
