@@ -1,0 +1,24 @@
+name: PR quick-start check
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  quick-start:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: make build
+
+      - name: Smoke test
+        run: make smoke-test
+
+      - name: Compare results
+        run: |
+          results_dir=$(ls -dt logs/run-rusticl-cpu.results.*/ | head -1)
+          make compare-results \
+            GOLDEN=logs/example-comparison/golden/Printf.json \
+            RESULTS_DIR="${results_dir}"
