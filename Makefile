@@ -52,7 +52,7 @@ endef
 # ── Build ──────────────────────────────────────────────────────────────────────
 
 .PHONY: all
-all: build
+all: help
 
 $(LOGS_DIR):
 	mkdir -p $@
