@@ -3,6 +3,10 @@ CONTAINER_NAME ?= opencl-cts-run
 CONTAINERFILE  ?= Containerfile
 LOGS_DIR       := logs
 
+# Paths used by the compare-results target.
+GOLDEN      ?=
+RESULTS_DIR ?=
+
 # Evaluated once per make invocation; all targets in one run share the stamp.
 LOG_STAMP := $(shell date +%Y-%m-%dT%H-%M-%S)
 
@@ -178,6 +182,23 @@ run-amd-gpu: | $(LOGS_DIR)
 		$(addprefix -e ,$(RUN_ENV)) \
 		$(IMAGE_NAME))
 
+.PHONY: compare-results
+## Compare a JSON results directory against a golden reference.
+## Usage: make compare-results GOLDEN=<path> RESULTS_DIR=<path>
+##   GOLDEN      path to the golden JSON file on the host
+##   RESULTS_DIR path to a <target>.results.<stamp>/ directory on the host
+compare-results:
+	@test -n "$(GOLDEN)"      || { echo "ERROR: GOLDEN is not set";      exit 1; }
+	@test -n "$(RESULTS_DIR)" || { echo "ERROR: RESULTS_DIR is not set"; exit 1; }
+	podman run --rm \
+		-v $(abspath $(GOLDEN)):/golden.json:z,ro \
+		-v $(abspath $(RESULTS_DIR)):/results:z,ro \
+		--entrypoint python3 \
+		$(IMAGE_NAME) \
+		/opencl-cts/ci/compare_results.py \
+			--golden /golden.json \
+			--results-dir /results
+
 .PHONY: shell
 ## Open an interactive shell inside the built image for manual inspection.
 shell:
@@ -206,6 +227,7 @@ help:
 	@printf '                     RUSTICL_ENABLE=iris; CL_DEVICE_TYPE=CL_DEVICE_TYPE_GPU\n'
 	@printf '  run-intel-gpu      Run with Intel /dev/dri; CL_DEVICE_TYPE=CL_DEVICE_TYPE_GPU\n'
 	@printf '  run-amd-gpu        Run with AMD /dev/kfd+dri; CL_DEVICE_TYPE=CL_DEVICE_TYPE_GPU\n'
+	@printf '  compare-results    Compare a results dir against a golden JSON reference\n'
 	@printf '  shell              Drop into a bash shell inside the image\n'
 	@printf '  clean              Delete the container and image\n'
 	@printf '\nLogs: each run creates $(LOGS_DIR)/<target>.<timestamp>.log;\n'
@@ -216,6 +238,8 @@ help:
 	@printf '  CL_DEVICE_TYPE OpenCL device type           (set per target; override to change)\n'
 	@printf '  CTS_TESTS      Substring filters for test names (default: empty = run all)\n'
 	@printf '                 e.g.: make run CTS_TESTS="Printf SVM"\n'
+	@printf '  GOLDEN         Path to the golden JSON file for compare-results\n'
+	@printf '  RESULTS_DIR    Path to a <target>.results.<stamp>/ dir for compare-results\n'
 	@printf '  RUN_ENV        Space-separated KEY=VALUE pairs forwarded into the container.\n'
 	@printf '                 e.g.: make run RUN_ENV="OCL_ICD_ENABLE_TRACE=1"\n'
 	@printf '                       (trace every ICD dispatch — debugging only, very verbose)\n'
