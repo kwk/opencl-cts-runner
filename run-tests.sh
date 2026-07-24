@@ -10,6 +10,10 @@ EXIT_ON_FAIL="${EXIT_ON_FAIL:-0}"
 # A test is included if any pattern matches.  Empty = run all.
 CTS_TESTS="${CTS_TESTS:-}"
 
+# ── Run parameters ────────────────────────────────────────────────────────────
+echo "CTS_TESTS: ${CTS_TESTS:-(all)}"
+echo ""
+
 # ── Platform diagnostics ───────────────────────────────────────────────────────
 echo "=== OpenCL platform info ==="
 clinfo --list 2>/dev/null || clinfo 2>/dev/null || echo "(clinfo not available)"
