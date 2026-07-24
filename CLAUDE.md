@@ -1,86 +1,47 @@
-# OpenCL-CTS podman build
+# OpenCL-CTS podman build — developer notes
 
-This directory contains a `Makefile` and `Containerfile` that build the
-[Khronos OpenCL Conformance Test Suite](https://github.com/KhronosGroup/OpenCL-CTS)
-inside a `fedora:44` container and run it against one of several OpenCL backends.
+This file captures non-obvious decisions for future reference. For usage, see README.md.
 
-## Quick start
+## Key files
 
-```
-$ make build                                          # build the image (~5-20 min, cached after)
-$ make list-tests                                     # list every test executable in the image
-
-# Run a single test via Mesa Rusticl + llvmpipe to exercise libclc — no GPU needed.
-# (POCL does not depend on libclc; only Mesa Rusticl does.)
-$ make smoke-test         # one test only — not a full conformance run
-
-# Compare the results against the defined golden file.
-$ make compare-results GOLDEN=logs/example-comparison/golden/Printf.json RESULTS_DIR=logs/run-rusticl-cpu.results.<LOG_STAMP>/
-podman run --rm \
-	-v /home/kkleine/src/opencl-cts-plans/from-claude/logs/example-comparison/golden/Printf.json:/golden.json:z,ro \
-	-v /home/kkleine/src/opencl-cts-plans/from-claude/logs/run-rusticl-cpu.results.<LOG_STAMP>:/results:z,ro \
-	--entrypoint python3 \
-	opencl-cts \
-	/opencl-cts/ci/compare_results.py \
-		--golden /golden.json \
-		--results-dir /results
-
- All run tests match the golden reference perfectly!
-```
-
-## Run targets
-
-| Target | Backend | libclc | Devices forwarded |
-|---|---|---|---|
-| `run` | POCL (CPU) | no (pocl has no libclc dep) | none |
-| `run-rusticl-cpu` | Mesa Rusticl + llvmpipe (CPU) | yes — runtime RPM dep of mesa-libOpenCL | none |
-| `run-intel-rusticl` | Mesa Rusticl (Intel Iris/Xe) | yes — runtime RPM dep of mesa-libOpenCL | `/dev/dri` |
-| `run-intel-gpu` | falls back to POCL (no GPU OCL backend installed) | no | `/dev/dri` |
-| `run-amd-gpu` | falls back to POCL (no GPU OCL backend installed) | no | `/dev/kfd` + `/dev/dri` |
-
-Every `run*` target runs `clinfo` first (with matching device flags) and logs
-the output separately.
-
-## Key variables
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `CTS_TESTS` | _(empty = all)_ | Space-separated ERE patterns matched against the full test path (substring or regex); a test runs if any pattern matches |
-| `RUN_ENV` | _(empty)_ | Extra env vars forwarded into the container |
-| `IMAGE_NAME` | `opencl-cts` | podman image tag |
-
-Examples:
-
-```
-make run CTS_TESTS="test_api test_basic"         # two specific tests
-make run CTS_TESTS="extensions"                  # all under extensions/
-make run CTS_TESTS="test_(api|basic)"            # regex alternation
-make run RUN_ENV="EXIT_ON_FAIL=1"
-make run-intel-rusticl CTS_TESTS="test_svm"
-```
-
-## Logs
-
-Every `build` and `run*` invocation writes to `logs/<target>.<timestamp>.log`
-and updates `logs/<target>.log` as a symlink to the most recent file.  Logs
-are kept for all runs; nothing is overwritten.
+| File | Purpose |
+|---|---|
+| `Containerfile` | Builds the image: installs deps, clones CTS + OpenCL-Headers, CMake build |
+| `Makefile` | All make targets; see `make help` |
+| `run-tests.sh` | Container entrypoint: prints platform info, sets up JSON dir, calls `run_conformance.py` |
+| `logs/` | All log and JSON result files land here (mounted into the container at `/logs`) |
 
 ## Build decisions
 
 **OpenCL-Headers** — the Fedora `opencl-headers` package lags behind the CTS
-main branch.  The `Containerfile` clones
-`https://github.com/KhronosGroup/OpenCL-Headers` directly into
-`/opencl-cts/extern/OpenCL-Headers` and points `-DCL_INCLUDE_DIR` there.
+main branch (e.g. missing `CL_COMMAND_BUFFER_STATE_FINALIZED_KHR`).
+`https://github.com/KhronosGroup/OpenCL-Headers` is cloned separately into
+`/opencl-cts/extern/OpenCL-Headers` and `-DCL_INCLUDE_DIR` points there.
 
 **OpenCL ICD Loader** — uses `OpenCL-ICD-Loader` / `OpenCL-ICD-Loader-devel`
 (Khronos official, v3.0.6) rather than `ocl-icd` (community, v2.3.4).
 
 **SPIRV_INCLUDE_DIR=/usr** — the CTS CMake appends `include/spirv/` internally,
-so the correct value is `/usr`, not `/usr/include` (which would double the
-path component).
+so the correct value is `/usr`, not `/usr/include` (which doubles the path).
 
-**POCL-only vendor directory** — `mesa-libOpenCL` is installed to support
-`run-intel-rusticl`, but it also causes Rusticl to appear as platform 0 with
-no device when `/dev/dri` is not forwarded.  A `/etc/OpenCL/vendors-pocl/`
-directory is created in the image containing only `pocl.icd`; the `run`
-target sets `OCL_ICD_VENDORS` to that directory to pin to POCL.
+**POCL-only vendor directory** — `mesa-libOpenCL` is installed for Rusticl
+support, but it also registers rusticl as platform 0 with no device when
+`/dev/dri` is not forwarded, breaking POCL-only runs.  A
+`/etc/OpenCL/vendors-pocl/` directory is created containing only `pocl.icd`
+so the `run` target can restrict the ICD loader via `OCL_ICD_VENDORS`.
+
+**libclc** — only `mesa-libOpenCL` (Rusticl) has libclc as a runtime RPM dep;
+POCL does not.  Use `run-rusticl-cpu` (llvmpipe, no GPU needed) or
+`run-intel-rusticl` to exercise libclc.
+
+**kwk/OpenCL-CTS fork** — the fork branch `add-conformance-results-dir-option`
+adds `--conformance-results-dir=<DIR>` to `run_conformance.py`, which sets
+`CL_CONFORMANCE_RESULTS_FILENAME=<DIR>/<test>.json` before each test binary.
+Switch back to `KhronosGroup/OpenCL-CTS` main once PR #2755 is merged.
+
+**CTS_TESTS** — forwarded as positional substring filter arguments to
+`run_conformance.py`; plain substring matching only (no regex).
+
+**JSON results** — each `run*` invocation writes per-test JSON files to
+`logs/<target>.results.<stamp>/`.  These can be compared against a golden
+reference with `make compare-results`.
