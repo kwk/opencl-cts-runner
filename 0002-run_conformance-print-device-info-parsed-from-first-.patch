@@ -1,0 +1,65 @@
+From 4843cb9595652f50a7943e1815ac1c771f52d48c Mon Sep 17 00:00:00 2001
+From: Konrad Kleine <kkleine@redhat.com>
+Date: Fri, 24 Jul 2026 14:51:21 +0200
+Subject: [PATCH 2/2] run_conformance: print device info parsed from first test
+ binary output
+
+Instead of querying OpenCL directly (which may not match what test
+binaries actually select), parse Device Name/Version lines from the
+first test binary's stdout per device type and surface them on screen.
+This gives confidence that the reported device matches what the tests
+actually ran on.
+
+Co-Authored-By: Claude Sonnet 4.6 (1M context) <noreply@anthropic.com>
+---
+ test_conformance/run_conformance.py | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/test_conformance/run_conformance.py b/test_conformance/run_conformance.py
+index 3839c2cf..04789329 100755
+--- a/test_conformance/run_conformance.py
++++ b/test_conformance/run_conformance.py
+@@ -19,6 +19,7 @@ import tempfile
+ 
+ DEBUG = 0
+ conformance_results_dir = None
++device_info_printed = False
+ 
+ log_file_name = "opencl_conformance_results_" + time.strftime("%Y-%m-%d_%H-%M", time.localtime()) + ".log"
+ process_pid = 0
+@@ -82,7 +83,7 @@ def get_tests(filename, devices_to_test):
+ 
+ 
+ def run_test_checking_output(current_directory, test_dir, log_file, conformance_results_file=None):
+-    global process_pid, seconds_between_status_updates
++    global process_pid, seconds_between_status_updates, device_info_printed
+     failures_this_run = 0
+     start_time = time.time()
+     # Create a temporary file for capturing the output from the test
+@@ -162,6 +163,15 @@ def run_test_checking_output(current_directory, test_dir, log_file, conformance_
+             continue
+         # If we got a full line then process it
+         if char_read == "\n":
++            # Surface device info from the first test binary that runs per device type
++            if not device_info_printed:
++                if re.search(r"(Device Name:|Device Version:|Compute Device Name =)", line):
++                    if not output_this_run:
++                        print("")
++                        output_this_run = True
++                    print("           --- " + line.strip())
++                    if re.search(r"(Device Version:|Compute Device Name =)", line):
++                        device_info_printed = True
+             # Look for failures and report them as such
+             match = re.search(".*(FAILED|ERROR).*", line)
+             if match:
+@@ -367,6 +377,7 @@ for (test_name, test_command) in tests:
+ total_failures = 0
+ for device_to_test in devices_to_test:
+     os.environ['CL_DEVICE_TYPE'] = device_to_test
++    device_info_printed = False
+     write_screen_log("========================================================================================")
+     write_screen_log("========================================================================================")
+     write_screen_log(("Setting CL_DEVICE_TYPE to " + device_to_test).center(90))
+-- 
+2.55.0
+

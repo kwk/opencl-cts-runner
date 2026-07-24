@@ -33,6 +33,11 @@ import urllib.request, subprocess; \
 r = urllib.request.urlopen('https://github.com/KhronosGroup/OpenCL-CTS/pull/2755.patch'); \
 subprocess.run(['git', 'apply'], input=r.read(), cwd='/opencl-cts', check=True)"
 
+# Print the device actually selected by the first test binary so the log
+# reflects which platform ran the tests (not just what clinfo reports).
+COPY 0002-run_conformance-print-device-info-parsed-from-first-.patch /tmp/0002.patch
+RUN git -C /opencl-cts apply /tmp/0002.patch && rm /tmp/0002.patch
+
 # The Fedora opencl-headers package lags behind the CTS main branch
 # (e.g. CL_COMMAND_BUFFER_STATE_FINALIZED_KHR is missing).  Clone the
 # upstream headers directly so they stay in sync with the CTS source.
