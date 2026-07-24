@@ -34,11 +34,6 @@ CTS_TESTS ?=
 # Extra environment variables forwarded into the container at runtime.
 RUN_ENV ?=
 
-# podman options forwarded to the clinfo prerequisite so it sees exactly the
-# same devices and environment as the actual test run.  Each run-* target
-# overrides this with its own --device and -e flags.
-CLINFO_OPTS ?=
-
 # Tee output to a timestamped file and update the <target>.log symlink to it.
 # The symlink is updated even when the command fails so the latest log is
 # always reachable under the stable name regardless of exit code.
@@ -65,16 +60,6 @@ build: | $(LOGS_DIR)
 		--tag $(IMAGE_NAME) \
 		.)
 
-.PHONY: clinfo
-## Show OpenCL platforms visible inside the container and log the output.
-## Runs automatically before each run* target with CLINFO_OPTS matching the
-## test run, so the log reflects exactly what the tests will see.
-clinfo: | $(LOGS_DIR)
-	$(call log_and_link,podman run --rm \
-		$(CLINFO_OPTS) \
-		--entrypoint clinfo \
-		$(IMAGE_NAME))
-
 .PHONY: list-lists
 ## List the CSV test-list presets available inside the image.
 list-lists:
@@ -99,9 +84,8 @@ list-tests-in-list:
 ## Run CTS tests via POCL (CPU, no GPU needed).
 ## OCL_ICD_VENDORS restricts the ICD loader to pocl.icd only so that rusticl
 ## (which has no device without /dev/dri) does not appear as platform 0.
-run: CLINFO_OPTS = -e OCL_ICD_VENDORS=/etc/OpenCL/vendors-pocl
 run: CL_DEVICE_TYPE = CL_DEVICE_TYPE_CPU
-run: clinfo | $(LOGS_DIR)
+run: | $(LOGS_DIR)
 	$(call log_and_link,podman run --rm --replace \
 		--name $(CONTAINER_NAME) \
 		-e OCL_ICD_VENDORS=/etc/OpenCL/vendors-pocl \
@@ -120,9 +104,8 @@ smoke-test:
 ## Run via Mesa Rusticl on the llvmpipe software device — no GPU required.
 ## Exercises libclc (a runtime dep of mesa-libOpenCL); POCL does not use libclc.
 ## llvmpipe exposes as CL_DEVICE_TYPE_CPU.
-run-rusticl-cpu: CLINFO_OPTS = -e RUSTICL_ENABLE=llvmpipe
 run-rusticl-cpu: CL_DEVICE_TYPE = CL_DEVICE_TYPE_CPU
-run-rusticl-cpu: clinfo | $(LOGS_DIR)
+run-rusticl-cpu: | $(LOGS_DIR)
 	$(call log_and_link,podman run --rm --replace \
 		--name $(CONTAINER_NAME) \
 		-e RUSTICL_ENABLE=llvmpipe \
@@ -135,9 +118,8 @@ run-rusticl-cpu: clinfo | $(LOGS_DIR)
 .PHONY: run-intel-rusticl
 ## Run with Intel Iris/Xe GPU via Mesa Rusticl (requires i915/xe driver on host).
 ## RUSTICL_ENABLE=iris tells Mesa to expose the Iris/Xe GPU as an OpenCL device.
-run-intel-rusticl: CLINFO_OPTS = --device=/dev/dri -e RUSTICL_ENABLE=iris
 run-intel-rusticl: CL_DEVICE_TYPE = CL_DEVICE_TYPE_GPU
-run-intel-rusticl: clinfo | $(LOGS_DIR)
+run-intel-rusticl: | $(LOGS_DIR)
 	$(call log_and_link,podman run --rm --replace \
 		--name $(CONTAINER_NAME) \
 		--device=/dev/dri \
@@ -150,9 +132,8 @@ run-intel-rusticl: clinfo | $(LOGS_DIR)
 
 .PHONY: run-intel-gpu
 ## Run with Intel GPU passed through (requires i915/xe driver on the host).
-run-intel-gpu: CLINFO_OPTS = --device=/dev/dri
 run-intel-gpu: CL_DEVICE_TYPE = CL_DEVICE_TYPE_GPU
-run-intel-gpu: clinfo | $(LOGS_DIR)
+run-intel-gpu: | $(LOGS_DIR)
 	$(call log_and_link,podman run --rm --replace \
 		--name $(CONTAINER_NAME) \
 		--device=/dev/dri \
@@ -164,9 +145,8 @@ run-intel-gpu: clinfo | $(LOGS_DIR)
 
 .PHONY: run-amd-gpu
 ## Run with AMD GPU passed through (requires amdgpu + ROCm on the host).
-run-amd-gpu: CLINFO_OPTS = --device=/dev/kfd --device=/dev/dri
 run-amd-gpu: CL_DEVICE_TYPE = CL_DEVICE_TYPE_GPU
-run-amd-gpu: clinfo | $(LOGS_DIR)
+run-amd-gpu: | $(LOGS_DIR)
 	$(call log_and_link,podman run --rm --replace \
 		--name $(CONTAINER_NAME) \
 		--device=/dev/kfd \
@@ -199,7 +179,6 @@ help:
 	@printf '  smoke-test         Run test_printf via Rusticl+llvmpipe (quick libclc check)\n'
 	@printf '  list-lists         List CSV test-list presets available in the image\n'
 	@printf '  list-tests-in-list List tests in the selected CTS_LIST\n'
-	@printf '  clinfo             Show OpenCL platforms visible inside the container\n'
 	@printf '  run                Run CTS via POCL (CPU); RUSTICL_ENABLE: not set\n'
 	@printf '  run-rusticl-cpu    Run via Mesa Rusticl + llvmpipe (CPU); uses libclc\n'
 	@printf '                     RUSTICL_ENABLE=llvmpipe; CL_DEVICE_TYPE=CL_DEVICE_TYPE_CPU\n'
