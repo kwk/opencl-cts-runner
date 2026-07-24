@@ -75,12 +75,20 @@ clinfo: | $(LOGS_DIR)
 		--entrypoint clinfo \
 		$(IMAGE_NAME))
 
-.PHONY: list-tests
-## List all test executables built into the image (full paths, one per line).
-list-tests:
+.PHONY: list-lists
+## List the CSV test-list presets available inside the image.
+list-lists:
 	@podman run --rm --entrypoint /bin/bash $(IMAGE_NAME) \
-		-c "cd /opencl-cts/build && find test_conformance \
-		    -name 'test_*' -type f -executable | sort"
+		-c "ls /opencl-cts/test_conformance/opencl_conformance_tests_*.csv \
+		    | xargs -n1 basename"
+
+.PHONY: list-tests-in-list
+## List the tests defined in the currently selected CTS_LIST (default: quick).
+## Override with: make list-tests-in-list CTS_LIST=opencl_conformance_tests_full.csv
+list-tests-in-list:
+	@podman run --rm --entrypoint /bin/bash $(IMAGE_NAME) \
+		-c "grep -v '^[[:space:]]*#\|^[[:space:]]*$$' \
+		    /opencl-cts/test_conformance/$(CTS_LIST)"
 
 .PHONY: run
 ## Run CTS tests via POCL (CPU, no GPU needed).
@@ -184,7 +192,8 @@ help:
 	@printf 'Targets:\n'
 	@printf '  build              Build the OpenCL-CTS image (~5-20 min first time)\n'
 	@printf '  smoke-test         Run test_printf via Rusticl+llvmpipe (quick libclc check)\n'
-	@printf '  list-tests         List all test executables built into the image\n'
+	@printf '  list-lists         List CSV test-list presets available in the image\n'
+	@printf '  list-tests-in-list List tests in the selected CTS_LIST\n'
 	@printf '  clinfo             Show OpenCL platforms visible inside the container\n'
 	@printf '  run                Run CTS via POCL (CPU); RUSTICL_ENABLE: not set\n'
 	@printf '  run-rusticl-cpu    Run via Mesa Rusticl + llvmpipe (CPU); uses libclc\n'
