@@ -3,6 +3,9 @@ CONTAINER_NAME ?= opencl-cts-run
 CONTAINERFILE  ?= Containerfile
 LOGS_DIR       := logs
 
+# Evaluated once per make invocation; all targets in one run share the stamp.
+LOG_STAMP := $(shell date +%Y-%m-%dT%H-%M-%S)
+
 # pipefail is needed so the exit code of the left-hand command survives
 # the tee pipe and reaches make.
 SHELL := /bin/bash
@@ -10,6 +13,17 @@ SHELL := /bin/bash
 # Passed into the container at runtime; override on the command line.
 # EXIT_ON_FAIL=1 stops after the first failing test suite.
 RUN_ENV ?=
+
+# Tee output to a timestamped file and update the <target>.log symlink to it.
+# The symlink is updated even when the command fails so the latest log is
+# always reachable under the stable name regardless of exit code.
+define log_and_link
+	set -o pipefail; \
+	$(1) 2>&1 | tee $(LOGS_DIR)/$@.$(LOG_STAMP).log; \
+	EC=$$?; \
+	ln -sf $@.$(LOG_STAMP).log $(LOGS_DIR)/$@.log; \
+	exit $$EC
+endef
 
 .PHONY: all build run run-intel-gpu run-amd-gpu shell clean help
 
@@ -21,40 +35,36 @@ $(LOGS_DIR):
 ## Build the container image (compiles OpenCL-CTS inside).
 ## This step takes several minutes; the result is cached by podman.
 build: | $(LOGS_DIR)
-	set -o pipefail; \
-	podman build \
+	$(call log_and_link,podman build \
 		--file $(CONTAINERFILE) \
 		--tag $(IMAGE_NAME) \
-		. 2>&1 | tee $(LOGS_DIR)/$@.log
+		.)
 
 ## Run OpenCL-CTS tests using the POCL CPU-based OpenCL implementation.
 ## No GPU hardware required.
 run: | $(LOGS_DIR)
-	set -o pipefail; \
-	podman run --rm \
+	$(call log_and_link,podman run --rm \
 		--name $(CONTAINER_NAME) \
 		$(addprefix -e ,$(RUN_ENV)) \
-		$(IMAGE_NAME) 2>&1 | tee $(LOGS_DIR)/$@.log
+		$(IMAGE_NAME))
 
 ## Run with Intel GPU passed through (requires i915/xe driver on the host).
 run-intel-gpu: | $(LOGS_DIR)
-	set -o pipefail; \
-	podman run --rm \
+	$(call log_and_link,podman run --rm \
 		--name $(CONTAINER_NAME) \
 		--device=/dev/dri \
 		$(addprefix -e ,$(RUN_ENV)) \
-		$(IMAGE_NAME) 2>&1 | tee $(LOGS_DIR)/$@.log
+		$(IMAGE_NAME))
 
 ## Run with AMD GPU passed through (requires amdgpu + ROCm on the host).
 run-amd-gpu: | $(LOGS_DIR)
-	set -o pipefail; \
-	podman run --rm \
+	$(call log_and_link,podman run --rm \
 		--name $(CONTAINER_NAME) \
 		--device=/dev/kfd \
 		--device=/dev/dri \
 		--security-opt seccomp=unconfined \
 		$(addprefix -e ,$(RUN_ENV)) \
-		$(IMAGE_NAME) 2>&1 | tee $(LOGS_DIR)/$@.log
+		$(IMAGE_NAME))
 
 ## Open an interactive shell inside the built image for manual inspection.
 shell:
@@ -76,7 +86,8 @@ help:
 	@printf '  run-amd-gpu      Run tests with AMD /dev/kfd + /dev/dri passed through\n'
 	@printf '  shell            Drop into a bash shell inside the image\n'
 	@printf '  clean            Delete the container and image\n'
-	@printf '\nAll build/run output is also written to $(LOGS_DIR)/<target>.log\n'
+	@printf '\nLogs: each run creates $(LOGS_DIR)/<target>.<timestamp>.log;\n'
+	@printf '      $(LOGS_DIR)/<target>.log is a symlink to the most recent one.\n'
 	@printf '\nVariables:\n'
 	@printf '  IMAGE_NAME       Image tag           (default: opencl-cts)\n'
 	@printf '  CONTAINER_NAME   Container name      (default: opencl-cts-run)\n'
