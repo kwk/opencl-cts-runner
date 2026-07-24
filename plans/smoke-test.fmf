@@ -1,0 +1,37 @@
+summary: Build OpenCL-CTS natively and run smoke-test
+
+# Testing Farm sometimes runs inside a container, so we cannot use podman.
+# Instead we install dependencies and build the CTS directly on the host,
+# mirroring what the Containerfile does.
+
+provision:
+    how: virtual
+    image: fedora-latest
+
+prepare:
+    # ── Packages (mirrors Containerfile dnf install) ──────────────────────────
+    - how: install
+      package:
+          - git
+          - cmake
+          - make
+          - ninja-build
+          - gcc-c++
+          - python3
+          - OpenCL-ICD-Loader
+          - OpenCL-ICD-Loader-devel
+          - spirv-headers-devel
+          - spirv-tools
+          - pocl
+          - mesa-libOpenCL
+          - clinfo
+
+    # ── Clone, patch, and build OpenCL-CTS ───────────────────────────────────
+    - how: shell
+      script: tests/prepare.sh
+
+discover:
+    how: fmf
+
+execute:
+    how: tmt

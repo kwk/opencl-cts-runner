@@ -1,0 +1,5 @@
+summary: Smoke-test (Printf) via Mesa Rusticl + llvmpipe, compare against golden
+test: bash tests/smoke-test.sh
+path: /
+# prepare takes ~5-20 min to build; add headroom for the test itself
+duration: 45m
