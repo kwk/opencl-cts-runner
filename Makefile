@@ -216,4 +216,6 @@ help:
 	@printf '  CL_DEVICE_TYPE OpenCL device type           (set per target; override to change)\n'
 	@printf '  CTS_TESTS      Substring filters for test names (default: empty = run all)\n'
 	@printf '                 e.g.: make run CTS_TESTS="Printf SVM"\n'
-	@printf '  RUN_ENV        Extra env vars forwarded into the container\n'
+	@printf '  RUN_ENV        Space-separated KEY=VALUE pairs forwarded into the container.\n'
+	@printf '                 e.g.: make run RUN_ENV="OCL_ICD_ENABLE_TRACE=1"\n'
+	@printf '                       (trace every ICD dispatch — debugging only, very verbose)\n'
