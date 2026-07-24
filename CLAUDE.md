@@ -12,7 +12,7 @@ make list-tests                                     # list every test executable
 
 # Run a single test via Mesa Rusticl + llvmpipe to exercise libclc — no GPU needed.
 # (POCL does not depend on libclc; only Mesa Rusticl does.)
-make run-rusticl-cpu CTS_TESTS="test_conformance/printf/test_printf"   # one test only — not a full conformance run
+make smoke-test         # one test only — not a full conformance run
 ```
 
 ## Run targets
