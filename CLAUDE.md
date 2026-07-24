@@ -7,12 +7,25 @@ inside a `fedora:44` container and run it against one of several OpenCL backends
 ## Quick start
 
 ```
-make build                                          # build the image (~5-20 min, cached after)
-make list-tests                                     # list every test executable in the image
+$ make build                                          # build the image (~5-20 min, cached after)
+$ make list-tests                                     # list every test executable in the image
 
 # Run a single test via Mesa Rusticl + llvmpipe to exercise libclc — no GPU needed.
 # (POCL does not depend on libclc; only Mesa Rusticl does.)
-make smoke-test         # one test only — not a full conformance run
+$ make smoke-test         # one test only — not a full conformance run
+
+# Compare the results against the defined golden file.
+$ make compare-results GOLDEN=logs/example-comparison/golden/Printf.json RESULTS_DIR=logs/run-rusticl-cpu.results.<LOG_STAMP>/
+podman run --rm \
+	-v /home/kkleine/src/opencl-cts-plans/from-claude/logs/example-comparison/golden/Printf.json:/golden.json:z,ro \
+	-v /home/kkleine/src/opencl-cts-plans/from-claude/logs/run-rusticl-cpu.results.<LOG_STAMP>:/results:z,ro \
+	--entrypoint python3 \
+	opencl-cts \
+	/opencl-cts/ci/compare_results.py \
+		--golden /golden.json \
+		--results-dir /results
+
+ All run tests match the golden reference perfectly!
 ```
 
 ## Run targets
