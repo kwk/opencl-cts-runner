@@ -83,6 +83,11 @@ run: clinfo | $(LOGS_DIR)
 		$(addprefix -e ,$(RUN_ENV)) \
 		$(IMAGE_NAME))
 
+.PHONY: smoke-test
+## Quick sanity check: run test_printf via Mesa Rusticl + llvmpipe (no GPU needed).
+smoke-test:
+	$(MAKE) run-rusticl-cpu CTS_TESTS="test_conformance/printf/test_printf"
+
 .PHONY: run-rusticl-cpu
 ## Run via Mesa Rusticl on the llvmpipe software device — no GPU required.
 ## This is the simplest way to exercise libclc (a runtime dep of mesa-libOpenCL)
@@ -153,6 +158,7 @@ clean:
 help:
 	@printf 'Targets:\n'
 	@printf '  build              Build the OpenCL-CTS image (~5-20 min first time)\n'
+	@printf '  smoke-test         Run test_printf via Rusticl+llvmpipe (quick libclc check)\n'
 	@printf '  list-tests         List all test executables built into the image\n'
 	@printf '  clinfo             Show OpenCL platforms visible inside the container\n'
 	@printf '  run                Run CTS tests via POCL (CPU, no GPU needed)\n'
