@@ -10,17 +10,28 @@ LOG_STAMP := $(shell date +%Y-%m-%dT%H-%M-%S)
 # the tee pipe and reaches make.
 SHELL := /bin/bash
 
-# Space-separated list of ERE patterns matched against the full test path.
-# Each word is tested with bash =~ so plain substrings and full regexes both
-# work.  A test is included if any pattern matches.  Empty = run all tests.
+# CSV test list passed to run_conformance.py.  Available presets (all under
+# /opencl-cts/test_conformance/ inside the image):
+#   opencl_conformance_tests_quick.csv           (default)
+#   opencl_conformance_tests_full.csv
+#   opencl_conformance_tests_math.csv
+#   opencl_conformance_tests_conversions.csv
+#   opencl_conformance_tests_full_spirv.csv
+CTS_LIST ?= opencl_conformance_tests_quick.csv
+
+# OpenCL device type passed to run_conformance.py.  Controls which
+# device-type-specific CSV rows are included and sets CL_DEVICE_TYPE in
+# the environment for each test.  Overridden per run-* target.
+CL_DEVICE_TYPE ?= CL_DEVICE_TYPE_DEFAULT
+
+# Space-separated substring filters forwarded to run_conformance.py.
+# A test is included if its name contains any of the given strings.
 # Examples:
-#   make run CTS_TESTS="test_api test_basic"      # two specific tests
-#   make run CTS_TESTS="extensions"               # all extension tests
-#   make run CTS_TESTS="test_(api|basic)"         # regex alternation
+#   make run CTS_TESTS="Printf API"
+#   make run CTS_TESTS="SVM"
 CTS_TESTS ?=
 
 # Extra environment variables forwarded into the container at runtime.
-# EXIT_ON_FAIL=1 stops after the first failing test suite.
 RUN_ENV ?=
 
 # podman options forwarded to the clinfo prerequisite so it sees exactly the
@@ -72,16 +83,17 @@ list-tests:
 		    -name 'test_*' -type f -executable | sort"
 
 .PHONY: run
-## Run OpenCL-CTS tests using the POCL CPU-based OpenCL implementation.
-## No GPU hardware required.
-## OCL_ICD_VENDORS restricts the ICD loader to pocl.icd only so that the
-## mesa-libOpenCL rusticl platform (which has no device without /dev/dri)
-## does not become platform 0 and cause CL_DEVICE_NOT_FOUND failures.
+## Run CTS tests via POCL (CPU, no GPU needed).
+## OCL_ICD_VENDORS restricts the ICD loader to pocl.icd only so that rusticl
+## (which has no device without /dev/dri) does not appear as platform 0.
 run: CLINFO_OPTS = -e OCL_ICD_VENDORS=/etc/OpenCL/vendors-pocl
+run: CL_DEVICE_TYPE = CL_DEVICE_TYPE_CPU
 run: clinfo | $(LOGS_DIR)
 	$(call log_and_link,podman run --rm --replace \
 		--name $(CONTAINER_NAME) \
 		-e OCL_ICD_VENDORS=/etc/OpenCL/vendors-pocl \
+		-e CTS_LIST="$(CTS_LIST)" \
+		-e CL_DEVICE_TYPE="$(CL_DEVICE_TYPE)" \
 		-e CTS_TESTS="$(CTS_TESTS)" \
 		$(addprefix -e ,$(RUN_ENV)) \
 		$(IMAGE_NAME))
@@ -89,31 +101,36 @@ run: clinfo | $(LOGS_DIR)
 .PHONY: smoke-test
 ## Quick sanity check: run test_printf via Mesa Rusticl + llvmpipe (no GPU needed).
 smoke-test:
-	$(MAKE) run-rusticl-cpu CTS_TESTS="test_conformance/printf/test_printf"
+	$(MAKE) run-rusticl-cpu CTS_TESTS="Printf"
 
 .PHONY: run-rusticl-cpu
 ## Run via Mesa Rusticl on the llvmpipe software device — no GPU required.
-## This is the simplest way to exercise libclc (a runtime dep of mesa-libOpenCL)
-## without physical GPU hardware.  POCL does NOT depend on libclc; this target does.
+## Exercises libclc (a runtime dep of mesa-libOpenCL); POCL does not use libclc.
+## llvmpipe exposes as CL_DEVICE_TYPE_CPU.
 run-rusticl-cpu: CLINFO_OPTS = -e RUSTICL_ENABLE=llvmpipe
+run-rusticl-cpu: CL_DEVICE_TYPE = CL_DEVICE_TYPE_CPU
 run-rusticl-cpu: clinfo | $(LOGS_DIR)
 	$(call log_and_link,podman run --rm --replace \
 		--name $(CONTAINER_NAME) \
 		-e RUSTICL_ENABLE=llvmpipe \
+		-e CTS_LIST="$(CTS_LIST)" \
+		-e CL_DEVICE_TYPE="$(CL_DEVICE_TYPE)" \
 		-e CTS_TESTS="$(CTS_TESTS)" \
 		$(addprefix -e ,$(RUN_ENV)) \
 		$(IMAGE_NAME))
 
 .PHONY: run-intel-rusticl
 ## Run with Intel Iris/Xe GPU via Mesa Rusticl (requires i915/xe driver on host).
-## RUSTICL_ENABLE=iris tells Mesa to expose the Iris/Xe GPU as an OpenCL device;
-## without it Rusticl registers no platforms even with /dev/dri forwarded.
+## RUSTICL_ENABLE=iris tells Mesa to expose the Iris/Xe GPU as an OpenCL device.
 run-intel-rusticl: CLINFO_OPTS = --device=/dev/dri -e RUSTICL_ENABLE=iris
+run-intel-rusticl: CL_DEVICE_TYPE = CL_DEVICE_TYPE_GPU
 run-intel-rusticl: clinfo | $(LOGS_DIR)
 	$(call log_and_link,podman run --rm --replace \
 		--name $(CONTAINER_NAME) \
 		--device=/dev/dri \
 		-e RUSTICL_ENABLE=iris \
+		-e CTS_LIST="$(CTS_LIST)" \
+		-e CL_DEVICE_TYPE="$(CL_DEVICE_TYPE)" \
 		-e CTS_TESTS="$(CTS_TESTS)" \
 		$(addprefix -e ,$(RUN_ENV)) \
 		$(IMAGE_NAME))
@@ -121,10 +138,13 @@ run-intel-rusticl: clinfo | $(LOGS_DIR)
 .PHONY: run-intel-gpu
 ## Run with Intel GPU passed through (requires i915/xe driver on the host).
 run-intel-gpu: CLINFO_OPTS = --device=/dev/dri
+run-intel-gpu: CL_DEVICE_TYPE = CL_DEVICE_TYPE_GPU
 run-intel-gpu: clinfo | $(LOGS_DIR)
 	$(call log_and_link,podman run --rm --replace \
 		--name $(CONTAINER_NAME) \
 		--device=/dev/dri \
+		-e CTS_LIST="$(CTS_LIST)" \
+		-e CL_DEVICE_TYPE="$(CL_DEVICE_TYPE)" \
 		-e CTS_TESTS="$(CTS_TESTS)" \
 		$(addprefix -e ,$(RUN_ENV)) \
 		$(IMAGE_NAME))
@@ -132,12 +152,15 @@ run-intel-gpu: clinfo | $(LOGS_DIR)
 .PHONY: run-amd-gpu
 ## Run with AMD GPU passed through (requires amdgpu + ROCm on the host).
 run-amd-gpu: CLINFO_OPTS = --device=/dev/kfd --device=/dev/dri
+run-amd-gpu: CL_DEVICE_TYPE = CL_DEVICE_TYPE_GPU
 run-amd-gpu: clinfo | $(LOGS_DIR)
 	$(call log_and_link,podman run --rm --replace \
 		--name $(CONTAINER_NAME) \
 		--device=/dev/kfd \
 		--device=/dev/dri \
 		--security-opt seccomp=unconfined \
+		-e CTS_LIST="$(CTS_LIST)" \
+		-e CL_DEVICE_TYPE="$(CL_DEVICE_TYPE)" \
 		-e CTS_TESTS="$(CTS_TESTS)" \
 		$(addprefix -e ,$(RUN_ENV)) \
 		$(IMAGE_NAME))
@@ -163,24 +186,21 @@ help:
 	@printf '  smoke-test         Run test_printf via Rusticl+llvmpipe (quick libclc check)\n'
 	@printf '  list-tests         List all test executables built into the image\n'
 	@printf '  clinfo             Show OpenCL platforms visible inside the container\n'
-	@printf '  run                Run CTS tests via POCL (CPU, no GPU needed)\n'
-	@printf '                     RUSTICL_ENABLE: not set; does NOT use libclc\n'
-	@printf '  run-rusticl-cpu    Run via Mesa Rusticl + llvmpipe (CPU, no GPU needed)\n'
-	@printf '                     RUSTICL_ENABLE=llvmpipe; uses libclc\n'
-	@printf '  run-intel-rusticl  Run tests on Intel Iris/Xe GPU via Mesa Rusticl\n'
-	@printf '                     RUSTICL_ENABLE=iris; uses libclc\n'
-	@printf '  run-intel-gpu      Run tests with Intel /dev/dri passed through\n'
-	@printf '                     RUSTICL_ENABLE: not set; falls back to POCL\n'
-	@printf '  run-amd-gpu        Run tests with AMD /dev/kfd + /dev/dri passed through\n'
-	@printf '                     RUSTICL_ENABLE: not set; falls back to POCL\n'
+	@printf '  run                Run CTS via POCL (CPU); RUSTICL_ENABLE: not set\n'
+	@printf '  run-rusticl-cpu    Run via Mesa Rusticl + llvmpipe (CPU); uses libclc\n'
+	@printf '                     RUSTICL_ENABLE=llvmpipe; CL_DEVICE_TYPE=CL_DEVICE_TYPE_CPU\n'
+	@printf '  run-intel-rusticl  Run on Intel Iris/Xe GPU via Mesa Rusticl; uses libclc\n'
+	@printf '                     RUSTICL_ENABLE=iris; CL_DEVICE_TYPE=CL_DEVICE_TYPE_GPU\n'
+	@printf '  run-intel-gpu      Run with Intel /dev/dri; CL_DEVICE_TYPE=CL_DEVICE_TYPE_GPU\n'
+	@printf '  run-amd-gpu        Run with AMD /dev/kfd+dri; CL_DEVICE_TYPE=CL_DEVICE_TYPE_GPU\n'
 	@printf '  shell              Drop into a bash shell inside the image\n'
 	@printf '  clean              Delete the container and image\n'
 	@printf '\nLogs: each run creates $(LOGS_DIR)/<target>.<timestamp>.log;\n'
 	@printf '      $(LOGS_DIR)/<target>.log is a symlink to the most recent one.\n'
 	@printf '\nVariables:\n'
-	@printf '  IMAGE_NAME   Image tag           (default: opencl-cts)\n'
-	@printf '  CTS_TESTS    Space-separated test names/path fragments to run\n'
-	@printf '               (default: empty = run all tests)\n'
-	@printf '               e.g.: make run CTS_TESTS="test_api test_basic"\n'
-	@printf '  RUN_ENV      Extra env vars passed into the container\n'
-	@printf '               e.g.: make run RUN_ENV="EXIT_ON_FAIL=1"\n'
+	@printf '  IMAGE_NAME     Image tag                    (default: opencl-cts)\n'
+	@printf '  CTS_LIST       CSV test preset filename     (default: opencl_conformance_tests_quick.csv)\n'
+	@printf '  CL_DEVICE_TYPE OpenCL device type           (set per target; override to change)\n'
+	@printf '  CTS_TESTS      Substring filters for test names (default: empty = run all)\n'
+	@printf '                 e.g.: make run CTS_TESTS="Printf SVM"\n'
+	@printf '  RUN_ENV        Extra env vars forwarded into the container\n'
