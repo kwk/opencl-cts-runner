@@ -66,7 +66,7 @@ clinfo: | $(LOGS_DIR)
 ## List all test executables built into the image (full paths, one per line).
 list-tests:
 	@podman run --rm --entrypoint /bin/bash $(IMAGE_NAME) \
-		-c "find /opencl-cts/build/test_conformance \
+		-c "cd /opencl-cts/build && find test_conformance \
 		    -name 'test_*' -type f -executable | sort"
 
 .PHONY: run
