@@ -37,7 +37,7 @@ POCL does not.  Use `run-rusticl-cpu` (llvmpipe, no GPU needed) or
 **kwk/OpenCL-CTS fork** — the fork branch `add-conformance-results-dir-option`
 adds `--conformance-results-dir=<DIR>` to `run_conformance.py`, which sets
 `CL_CONFORMANCE_RESULTS_FILENAME=<DIR>/<test>.json` before each test binary.
-Switch back to `KhronosGroup/OpenCL-CTS` main once PR #2755 is merged.
+Switch back to `KhronosGroup/OpenCL-CTS` main once KhronosGroup/OpenCL-CTS#2755 is merged.
 
 **CTS_TESTS** — forwarded as positional substring filter arguments to
 `run_conformance.py`; plain substring matching only (no regex).
