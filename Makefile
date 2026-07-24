@@ -23,9 +23,10 @@ CTS_TESTS ?=
 # EXIT_ON_FAIL=1 stops after the first failing test suite.
 RUN_ENV ?=
 
-# Device flags passed to the clinfo prerequisite.  Each run-* target
-# overrides this so clinfo sees the same devices as the actual test run.
-CLINFO_DEVICES ?=
+# podman options forwarded to the clinfo prerequisite so it sees exactly the
+# same devices and environment as the actual test run.  Each run-* target
+# overrides this with its own --device and -e flags.
+CLINFO_OPTS ?=
 
 # Tee output to a timestamped file and update the <target>.log symlink to it.
 # The symlink is updated even when the command fails so the latest log is
@@ -55,10 +56,11 @@ build: | $(LOGS_DIR)
 
 .PHONY: clinfo
 ## Show OpenCL platforms visible inside the container and log the output.
-## Runs automatically before each run* target (with the matching device flags).
+## Runs automatically before each run* target with CLINFO_OPTS matching the
+## test run, so the log reflects exactly what the tests will see.
 clinfo: | $(LOGS_DIR)
 	$(call log_and_link,podman run --rm \
-		$(CLINFO_DEVICES) \
+		$(CLINFO_OPTS) \
 		--entrypoint clinfo \
 		$(IMAGE_NAME))
 
@@ -75,6 +77,7 @@ list-tests:
 ## OCL_ICD_VENDORS restricts the ICD loader to pocl.icd only so that the
 ## mesa-libOpenCL rusticl platform (which has no device without /dev/dri)
 ## does not become platform 0 and cause CL_DEVICE_NOT_FOUND failures.
+run: CLINFO_OPTS = -e OCL_ICD_VENDORS=/etc/OpenCL/vendors-pocl
 run: clinfo | $(LOGS_DIR)
 	$(call log_and_link,podman run --rm --replace \
 		--name $(CONTAINER_NAME) \
@@ -92,6 +95,7 @@ smoke-test:
 ## Run via Mesa Rusticl on the llvmpipe software device — no GPU required.
 ## This is the simplest way to exercise libclc (a runtime dep of mesa-libOpenCL)
 ## without physical GPU hardware.  POCL does NOT depend on libclc; this target does.
+run-rusticl-cpu: CLINFO_OPTS = -e RUSTICL_ENABLE=llvmpipe
 run-rusticl-cpu: clinfo | $(LOGS_DIR)
 	$(call log_and_link,podman run --rm --replace \
 		--name $(CONTAINER_NAME) \
@@ -104,7 +108,7 @@ run-rusticl-cpu: clinfo | $(LOGS_DIR)
 ## Run with Intel Iris/Xe GPU via Mesa Rusticl (requires i915/xe driver on host).
 ## RUSTICL_ENABLE=iris tells Mesa to expose the Iris/Xe GPU as an OpenCL device;
 ## without it Rusticl registers no platforms even with /dev/dri forwarded.
-run-intel-rusticl: CLINFO_DEVICES = --device=/dev/dri
+run-intel-rusticl: CLINFO_OPTS = --device=/dev/dri -e RUSTICL_ENABLE=iris
 run-intel-rusticl: clinfo | $(LOGS_DIR)
 	$(call log_and_link,podman run --rm --replace \
 		--name $(CONTAINER_NAME) \
@@ -116,8 +120,7 @@ run-intel-rusticl: clinfo | $(LOGS_DIR)
 
 .PHONY: run-intel-gpu
 ## Run with Intel GPU passed through (requires i915/xe driver on the host).
-## clinfo runs first with --device=/dev/dri so the GPU shows up in that log.
-run-intel-gpu: CLINFO_DEVICES = --device=/dev/dri
+run-intel-gpu: CLINFO_OPTS = --device=/dev/dri
 run-intel-gpu: clinfo | $(LOGS_DIR)
 	$(call log_and_link,podman run --rm --replace \
 		--name $(CONTAINER_NAME) \
@@ -128,8 +131,7 @@ run-intel-gpu: clinfo | $(LOGS_DIR)
 
 .PHONY: run-amd-gpu
 ## Run with AMD GPU passed through (requires amdgpu + ROCm on the host).
-## clinfo runs first with the AMD device flags so the GPU shows up in that log.
-run-amd-gpu: CLINFO_DEVICES = --device=/dev/kfd --device=/dev/dri
+run-amd-gpu: CLINFO_OPTS = --device=/dev/kfd --device=/dev/dri
 run-amd-gpu: clinfo | $(LOGS_DIR)
 	$(call log_and_link,podman run --rm --replace \
 		--name $(CONTAINER_NAME) \
