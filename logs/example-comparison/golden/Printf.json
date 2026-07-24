@@ -1,0 +1,27 @@
+{
+	"test_printf": {
+		"": {
+			"int": "pass",
+			"long": "pass",
+			"half": "pass",
+			"half_limits": "pass",
+			"float": "pass",
+			"float_limits": "pass",
+			"double": "skip",
+			"double_limits": "skip",
+			"octal": "pass",
+			"unsigned": "pass",
+			"hexadecimal": "pass",
+			"char": "pass",
+			"string": "pass",
+			"format_string": "pass",
+			"vector": "pass",
+			"address_space": "pass",
+			"mixed_format_random": "pass",
+			"length_specifier": "pass",
+			"size_t": "skip",
+			"ptrdiff_t": "skip",
+			"buffer_size": "pass"
+		}
+	}
+}
