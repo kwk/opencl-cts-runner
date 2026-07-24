@@ -22,12 +22,16 @@ RUN dnf install -y --setopt=install_weak_deps=False \
     && dnf clean all
 
 # ── Fetch source ───────────────────────────────────────────────────────────────
-# TODO: switch back to https://github.com/KhronosGroup/OpenCL-CTS.git (main)
-#       once https://github.com/KhronosGroup/OpenCL-CTS/pull/2755 is merged.
 RUN git clone --depth=1 \
-        --branch add-conformance-results-dir-option \
-        https://github.com/kwk/OpenCL-CTS.git \
+        https://github.com/KhronosGroup/OpenCL-CTS.git \
         /opencl-cts
+
+# Apply KhronosGroup/OpenCL-CTS#2755 (--conformance-results-dir for run_conformance.py).
+# TODO: remove once the PR is merged.
+RUN python3 -c "\
+import urllib.request, subprocess; \
+r = urllib.request.urlopen('https://github.com/KhronosGroup/OpenCL-CTS/pull/2755.patch'); \
+subprocess.run(['git', 'apply'], input=r.read(), cwd='/opencl-cts', check=True)"
 
 # The Fedora opencl-headers package lags behind the CTS main branch
 # (e.g. CL_COMMAND_BUFFER_STATE_FINALIZED_KHR is missing).  Clone the

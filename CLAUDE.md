@@ -34,10 +34,11 @@ so the `run` target can restrict the ICD loader via `OCL_ICD_VENDORS`.
 POCL does not.  Use `run-rusticl-cpu` (llvmpipe, no GPU needed) or
 `run-intel-rusticl` to exercise libclc.
 
-**kwk/OpenCL-CTS fork** — the fork branch `add-conformance-results-dir-option`
-adds `--conformance-results-dir=<DIR>` to `run_conformance.py`, which sets
-`CL_CONFORMANCE_RESULTS_FILENAME=<DIR>/<test>.json` before each test binary.
-Switch back to `KhronosGroup/OpenCL-CTS` main once KhronosGroup/OpenCL-CTS#2755 is merged.
+**KhronosGroup/OpenCL-CTS#2755** — adds `--conformance-results-dir=<DIR>` to
+`run_conformance.py`, which sets `CL_CONFORMANCE_RESULTS_FILENAME=<DIR>/<test>.json`
+before each test binary.  The patch is applied on top of upstream main via
+`urllib.request` + `git apply` in the Containerfile (no fork needed).
+Remove the patch step once the PR is merged.
 
 **CTS_TESTS** — forwarded as positional substring filter arguments to
 `run_conformance.py`; plain substring matching only (no regex).
