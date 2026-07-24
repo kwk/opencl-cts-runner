@@ -22,6 +22,8 @@ RUN dnf install -y --setopt=install_weak_deps=False \
     && dnf clean all
 
 # ── Fetch source ───────────────────────────────────────────────────────────────
+# TODO: switch back to https://github.com/KhronosGroup/OpenCL-CTS.git (main)
+#       once https://github.com/KhronosGroup/OpenCL-CTS/pull/2755 is merged.
 RUN git clone --depth=1 \
         --branch add-conformance-results-dir-option \
         https://github.com/kwk/OpenCL-CTS.git \
