@@ -84,11 +84,16 @@ list-lists:
 
 .PHONY: list-tests-in-list
 ## List the tests defined in the currently selected CTS_LIST (default: quick).
+## Columns: command (with any subtest args)  |  test name  |  [device type if restricted]
 ## Override with: make list-tests-in-list CTS_LIST=opencl_conformance_tests_full.csv
 list-tests-in-list:
-	@podman run --rm --entrypoint /bin/bash $(IMAGE_NAME) \
-		-c "grep -v '^[[:space:]]*#\|^[[:space:]]*$$' \
-		    /opencl-cts/test_conformance/$(CTS_LIST)"
+	@podman run --rm --entrypoint python3 $(IMAGE_NAME) -c \
+		"f=open('/opencl-cts/test_conformance/$(CTS_LIST)'); \
+		rows=[[x.strip() for x in l.split(',',2)] for l in f \
+		      if l.strip() and not l.strip().startswith('#')]; \
+		w=max(len(r[-1]) for r in rows); \
+		[print(f'{r[-1]:{w}}  {r[-2]}' + (f'  [{r[0]}]' if len(r)==3 else '')) \
+		 for r in rows]"
 
 .PHONY: run
 ## Run CTS tests via POCL (CPU, no GPU needed).
