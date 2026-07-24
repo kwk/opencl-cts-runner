@@ -1,4 +1,4 @@
-# OpenCL-CTS podman build
+# OpenCL-CTS podman builder
 
 Builds the [Khronos OpenCL Conformance Test Suite](https://github.com/KhronosGroup/OpenCL-CTS)
 inside a `fedora:44` container and runs it against one of several OpenCL backends.
