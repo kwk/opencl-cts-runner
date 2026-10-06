@@ -1,7 +1,10 @@
-IMAGE_NAME     ?= opencl-cts
-CONTAINER_NAME ?= opencl-cts-run
-CONTAINERFILE  ?= Containerfile
-LOGS_DIR       := logs
+IMAGE_NAME       ?= opencl-cts
+CONTAINER_NAME   ?= opencl-cts-run
+CONTAINERFILE    ?= Containerfile
+LOGS_DIR         := logs
+LLVM_SRC_DIR     ?= ~/src/llvm/llvm-project/cts
+LLVM_BUILD_DIR   ?= ~/src/llvm/llvm-project/cts/build
+LLVM_INSTALL_DIR ?= ~/src/llvm/llvm-project/cts/install
 
 # Evaluated once per make invocation; all targets in one run share the stamp.
 LOG_STAMP := $(shell date +%Y-%m-%dT%H-%M-%S)
@@ -121,6 +124,23 @@ run: | $(LOGS_DIR)
 		-e LOG_STAMP=$(LOG_STAMP) \
 		$(addprefix -e ,$(RUN_ENV)) \
 		$(IMAGE_NAME))
+
+.PHONY: configure-llvm
+configure-llvm: |	$(LOGS_DIR)
+	$(call log_and_link,(mkdir -pv $(LLVM_BUILD_DIR) \
+		&& cd $(LLVM_BUILD_DIR) \
+		&& cmake -C $(LLVM_SRC_DIR)/libclc/cmake/caches/spirv.cmake \
+				-G Ninja \
+				-B . \
+				-DCMAKE_INSTALL_PREFIX=$(LLVM_INSTALL_DIR) \
+				-DRUNTIMES_spirv32-unknown-unknown_LIBCLC_USE_SPIRV_BACKEND:BOOL=ON \
+        -DRUNTIMES_spirv64-unknown-unknown_LIBCLC_USE_SPIRV_BACKEND:BOOL=ON \
+				$(LLVM_SRC_DIR)/llvm)
+
+.PHONY: build-llvm
+build-llvm: configure-llvm
+build-llvm: |	$(LOGS_DIR)
+	$(call log_and_link,(cd $(LLVM_BUILD_DIR) && ninja))
 
 .PHONY: run-rusticl-cpu
 ## Run via Mesa Rusticl on the llvmpipe software device — no GPU required.
