@@ -135,7 +135,7 @@ configure-llvm: |	$(LOGS_DIR)
 				-DCMAKE_INSTALL_PREFIX=$(LLVM_INSTALL_DIR) \
 				-DRUNTIMES_spirv32-unknown-unknown_LIBCLC_USE_SPIRV_BACKEND:BOOL=ON \
         -DRUNTIMES_spirv64-unknown-unknown_LIBCLC_USE_SPIRV_BACKEND:BOOL=ON \
-				$(LLVM_SRC_DIR)/llvm)
+				$(LLVM_SRC_DIR)/llvm))
 
 .PHONY: build-llvm
 build-llvm: configure-llvm
